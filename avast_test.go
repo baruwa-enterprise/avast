@@ -10,11 +10,33 @@ Avast - Golang Avast client
 package avast
 
 import (
+	"os"
+	"strings"
 	"testing"
+	"time"
+)
+
+const (
+	localSock = "/Users/andrew/avast.sock"
 )
 
 type CommandTestKey struct {
 	in  Command
+	out string
+}
+
+type SensiOptionTestKey struct {
+	in  SensiOption
+	out string
+}
+
+type FlagTestKey struct {
+	in  Flag
+	out string
+}
+
+type PackOptionTestKey struct {
+	in  PackOption
 	out string
 }
 
@@ -30,67 +52,434 @@ var TestCommands = []CommandTestKey{
 	{Command(100), ""},
 }
 
+var TestSensiOptions = []SensiOptionTestKey{
+	{Worm, "worm"},
+	{Trojan, "trojan"},
+	{Adware, "adware"},
+	{Spyware, "spyware"},
+	{Dropper, "dropper"},
+	{Kit, "kit"},
+	{Joke, "joke"},
+	{Dangerous, "dangerous"},
+	{Dialer, "dialer"},
+	{Rootkit, "rootkit"},
+	{Exploit, "exploit"},
+	{Pup, "pup"},
+	{Suspicious, "suspicious"},
+	{Pube, "pube"},
+	{SensiOption(100), ""},
+}
+
+var TestFlags = []FlagTestKey{
+	{FullFiles, "fullfiles"},
+	{AllFiles, "allfiles"},
+	{ScanDevices, "scandevices"},
+	{Flag(100), ""},
+}
+
+var TestPackOptions = []PackOptionTestKey{
+	{Mime, "mime"},
+	{Zip, "zip"},
+	{Arj, "arj"},
+	{Rar, "rar"},
+	{Cab, "cab"},
+	{Tar, "tar"},
+	{Gz, "gz"},
+	{Bzip2, "bzip2"},
+	{Ace, "ace"},
+	{Arc, "arc"},
+	{Zoo, "zoo"},
+	{Lharc, "lharc"},
+	{Chm, "chm"},
+	{Cpio, "cpio"},
+	{Rpm, "rpm"},
+	{Szip, "7zip"},
+	{Iso, "iso"},
+	{Tnef, "tnef"},
+	{Dbx, "dbx"},
+	{Sys, "sys"},
+	{Ole, "ole"},
+	{Exec, "exec"},
+	{WinExec, "winexec"},
+	{Install, "install"},
+	{Dmg, "dmg"},
+	{PackOption(100), ""},
+}
+
 func TestCommand(t *testing.T) {
 	for _, tt := range TestCommands {
 		if s := tt.in.String(); s != tt.out {
 			t.Errorf("%q.String() = %q, want %q", tt.in, s, tt.out)
 		}
+		if l := tt.in.Len(); l != len(tt.out) {
+			t.Errorf("%q.String() = %q, want %q", tt.in, l, len(tt.out))
+		}
+	}
+}
+
+func TestSensiOption(t *testing.T) {
+	for _, tt := range TestSensiOptions {
+		if s := tt.in.String(); s != tt.out {
+			t.Errorf("%q.String() = %q, want %q", tt.in, s, tt.out)
+		}
+		if s := tt.in.Enable(); s != "+"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "+"+tt.out)
+		}
+		if s := tt.in.Disable(); s != "-"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "-"+tt.out)
+		}
+	}
+}
+
+func TestFlag(t *testing.T) {
+	for _, tt := range TestFlags {
+		if s := tt.in.String(); s != tt.out {
+			t.Errorf("%q.String() = %q, want %q", tt.in, s, tt.out)
+		}
+		if s := tt.in.Enable(); s != "+"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "+"+tt.out)
+		}
+		if s := tt.in.Disable(); s != "-"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "-"+tt.out)
+		}
+	}
+}
+
+func TestPackOption(t *testing.T) {
+	for _, tt := range TestPackOptions {
+		if s := tt.in.String(); s != tt.out {
+			t.Errorf("%q.String() = %q, want %q", tt.in, s, tt.out)
+		}
+		if s := tt.in.Enable(); s != "+"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "+"+tt.out)
+		}
+		if s := tt.in.Disable(); s != "-"+tt.out {
+			t.Errorf("%q.Enable() = %q, want %q", tt.in, s, "-"+tt.out)
+		}
 	}
 }
 
 func TestBasics(t *testing.T) {
-	// c, e := NewClient("")
-	// if e == nil {
-	// 	t.Errorf("An error should be returned")
-	// }
-	// gopath := os.Getenv("GOPATH")
-	// if gopath == "" {
-	// 	gopath = build.Default.GOPATH
-	// }
-	// fn := path.Join(gopath, "src/github.com/baruwa-enterprise/avast/README.md")
-	// c, e = NewClient(fn)
-	// if e != nil {
-	// 	t.Errorf("An error should not be returned")
-	// }
-	// if c.address != fn {
-	// 	t.Errorf("Got %q want %q", c.address, fn)
-	// }
-	// if c.connTimeout != defaultTimeout {
-	// 	t.Errorf("The default conn timeout should be set")
-	// }
-	// if c.connSleep != defaultSleep {
-	// 	t.Errorf("The default conn sleep should be set")
-	// }
-	// if c.connRetries != 0 {
-	// 	t.Errorf("The default conn retries should be set")
-	// }
-	// expected := 2 * time.Second
-	// c.SetConnTimeout(expected)
-	// if c.connTimeout != expected {
-	// 	t.Errorf("Calling c.SetConnTimeout(%q) failed", expected)
-	// }
-	// c.SetCmdTimeout(expected)
-	// if c.cmdTimeout != expected {
-	// 	t.Errorf("Calling c.SetCmdTimeout(%q) failed", expected)
-	// }
-	// c.SetConnSleep(expected)
-	// if c.connSleep != expected {
-	// 	t.Errorf("Calling c.SetConnSleep(%q) failed", expected)
-	// }
-	// c.SetConnRetries(2)
-	// if c.connRetries != 2 {
-	// 	t.Errorf("Calling c.SetConnRetries(%q) failed", 2)
-	// }
-	// c.SetConnRetries(-2)
-	// if c.connRetries != 0 {
-	// 	t.Errorf("Preventing negative values in c.SetConnRetries(%q) failed", -2)
-	// }
-	// if _, e = NewClient("fe80::879:d85f:f836:1b56%en1"); e == nil {
-	// 	t.Errorf("An error should be returned")
-	// } else {
-	// 	expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
-	// 	if e.Error() != expect {
-	// 		t.Errorf("Got %q want %q", e, expect)
-	// 	}
-	// }
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		if c.address != address {
+			t.Errorf("Got %q want %q", c.address, address)
+		}
+		if c.connTimeout != defaultTimeout {
+			t.Errorf("The default conn timeout should be set")
+		}
+		if c.connSleep != defaultSleep {
+			t.Errorf("The default conn sleep should be set")
+		}
+		if c.connRetries != 0 {
+			t.Errorf("The default conn retries should be set")
+		}
+		expected := 2 * time.Second
+		c.SetConnTimeout(expected)
+		if c.connTimeout != expected {
+			t.Errorf("Calling c.SetConnTimeout(%q) failed", expected)
+		}
+		c.SetCmdTimeout(expected)
+		if c.cmdTimeout != expected {
+			t.Errorf("Calling c.SetCmdTimeout(%q) failed", expected)
+		}
+		c.SetConnSleep(expected)
+		if c.connSleep != expected {
+			t.Errorf("Calling c.SetConnSleep(%q) failed", expected)
+		}
+		c.SetConnRetries(2)
+		if c.connRetries != 2 {
+			t.Errorf("Calling c.SetConnRetries(%q) failed", 2)
+		}
+		c.SetConnRetries(-2)
+		if c.connRetries != 0 {
+			t.Errorf("Preventing negative values in c.SetConnRetries(%q) failed", -2)
+		}
+		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1"); e == nil {
+			t.Errorf("An error should be returned")
+		} else {
+			expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
+			if e.Error() != expect {
+				t.Errorf("Got %q want %q", e, expect)
+			}
+		}
+	}
+}
+
+func TestBasicError(t *testing.T) {
+	_, e := NewClient("")
+	if e == nil {
+		t.Errorf("An error should not be returned")
+	}
+	expected := "The unix socket: /var/run/avast/scan.sock does not exist"
+	if e.Error() != expected {
+		t.Errorf("Got %q want %q", e, expected)
+	}
+}
+
+func TestScan(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		fn := "/var/spool/testfiles/eicar.tar.bz2"
+		s, e := c.Scan(fn)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		for _, rt := range s {
+			if rt.Filename != fn {
+				t.Errorf("c.Scan(%q) = %q, want %q", fn, rt.Filename, fn)
+			}
+		}
+	}
+}
+
+func TestVps(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.Vps()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if i == 0 {
+			t.Errorf("Vps() should not return 0")
+		}
+	}
+}
+
+func TestPack(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.GetPack()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Mime.Enable()) {
+			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Enable())
+		}
+		e = c.SetPack(Mime, false)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetPack()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Mime.Disable()) {
+			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Disable())
+		}
+		e = c.SetPack(Mime, true)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetPack()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Mime.Enable()) {
+			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Enable())
+		}
+	}
+}
+
+func TestFlagsOp(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.GetFlags()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, FullFiles.Disable()) {
+			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Disable())
+		}
+		e = c.SetFlags(FullFiles, true)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetFlags()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, FullFiles.Enable()) {
+			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Enable())
+		}
+		e = c.SetFlags(FullFiles, false)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetFlags()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, FullFiles.Disable()) {
+			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Disable())
+		}
+	}
+}
+
+func TestSensitivityOp(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.GetSensitivity()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Worm.Enable()) {
+			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Enable())
+		}
+		e = c.SetSensitivity(Worm, false)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetSensitivity()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Worm.Disable()) {
+			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Disable())
+		}
+		e = c.SetSensitivity(Worm, true)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetSensitivity()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if strings.HasPrefix(i, Worm.Enable()) {
+			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Enable())
+		}
+	}
+}
+
+func TestExclude(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.GetExclude()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if i != "" {
+			t.Errorf("c.GetExclude() = %q, want %q", i, "")
+		}
+		fp := "/root"
+		e = c.SetExclude(fp)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		i, e = c.GetExclude()
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if i != fp {
+			t.Errorf("c.GetExclude() = %q, want %q", i, fp)
+		}
+	}
+}
+
+func TestCheckURL(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		i, e := c.CheckURL("http://www.google.com")
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if i {
+			t.Errorf(`CheckURL("http://www.google.com") should not return false`)
+		}
+		i, e = c.CheckURL("http://www.avast.com/eng/test-url-blocker.html")
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if !i {
+			t.Errorf(`CheckURL("http://www.avast.com/eng/test-url-blocker.html") should not return true`)
+		}
+	}
 }
