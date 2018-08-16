@@ -49,10 +49,10 @@ import "github.com/baruwa-enterprise/avast"
 
 ### Testing
 
-Set `AVAST_ADDRESS` to point to your avast socket
+Set the env variable `AVAST_ADDRESS` to point to your avast socket
 
 ```consule
-AVAST_ADDRESS="/var/run/avast/scan.sock"
+export AVAST_ADDRESS="/var/run/avast/scan.sock"
 make test
 ```
 
