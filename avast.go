@@ -15,6 +15,7 @@ import (
 	"net/textproto"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -291,6 +292,12 @@ func (c Command) String() (s string) {
 	return
 }
 
+// Len returns the length of the string
+func (c Command) Len() (l int) {
+	l = len(c.String())
+	return
+}
+
 // Response represents the response from the server
 type Response struct {
 	Filename    string
@@ -344,16 +351,13 @@ func (c *Client) Scan(p string) (r []*Response, err error) {
 
 // Vps returns the virus definitions (VPS) version
 func (c *Client) Vps() (v int, err error) {
-	var l int
 	var s string
 
-	s, err = c.basicCmd(Vps, "")
-	if err != nil {
+	if s, err = c.basicCmd(Vps, ""); err != nil {
 		return
 	}
 
-	l = len(s)
-	if l < 4 || s[0] != 'V' && s[1] != 'P' && s[2] != 'S' && s[3] != ' ' {
+	if !strings.HasPrefix(s, Vps.String()) {
 		err = fmt.Errorf("Invalid Server Response: %s", s)
 		return
 	}
@@ -368,26 +372,26 @@ func (c *Client) Vps() (v int, err error) {
 
 // GetPack returns packer options
 func (c *Client) GetPack() (p string, err error) {
-	var l int
 	var s string
-	s, err = c.basicCmd(Pack, "")
-	if err != nil {
+
+	if s, err = c.basicCmd(Pack, ""); err != nil {
 		return
 	}
 
-	l = len(s)
-	if l < 5 || s[0] != 'P' && s[3] != 'K' && s[4] != ' ' {
+	if !strings.HasPrefix(s, Pack.String()) {
 		err = fmt.Errorf("Invalid Server Response: %s", s)
 		return
 	}
 
-	p = s[5:]
+	p = s[Pack.Len():]
+
 	return
 }
 
 // SetPack sets packer options
 func (c *Client) SetPack(o PackOption, v bool) (err error) {
 	var s string
+
 	if v {
 		s = o.Enable()
 	} else {
@@ -395,31 +399,32 @@ func (c *Client) SetPack(o PackOption, v bool) (err error) {
 	}
 
 	_, err = c.basicCmd(Pack, s)
+
 	return
 }
 
 // GetFlags returns scan flags
 func (c *Client) GetFlags() (f string, err error) {
-	var l int
 	var s string
-	s, err = c.basicCmd(Flags, "")
-	if err != nil {
+
+	if s, err = c.basicCmd(Flags, ""); err != nil {
 		return
 	}
 
-	l = len(s)
-	if l < 6 || s[0] != 'F' && s[4] != 'K' && s[5] != ' ' {
+	if !strings.HasPrefix(s, Flags.String()) {
 		err = fmt.Errorf("Invalid Server Response: %s", s)
 		return
 	}
 
-	f = s[6:]
+	f = s[Flags.Len():]
+
 	return
 }
 
 // SetFlags sets scan flags
 func (c *Client) SetFlags(o Flag, v bool) (err error) {
 	var s string
+
 	if v {
 		s = o.Enable()
 	} else {
@@ -427,31 +432,32 @@ func (c *Client) SetFlags(o Flag, v bool) (err error) {
 	}
 
 	_, err = c.basicCmd(Flags, s)
+
 	return
 }
 
 // GetSensitivity returns scan sensitivity options
 func (c *Client) GetSensitivity() (f string, err error) {
-	var l int
 	var s string
-	s, err = c.basicCmd(Sensitivity, "")
-	if err != nil {
+
+	if s, err = c.basicCmd(Sensitivity, ""); err != nil {
 		return
 	}
 
-	l = len(s)
-	if l < 12 || s[0] != 'S' && s[10] != 'Y' && s[11] != ' ' {
+	if !strings.HasPrefix(s, Sensitivity.String()) {
 		err = fmt.Errorf("Invalid Server Response: %s", s)
 		return
 	}
 
-	f = s[11:]
+	f = s[Sensitivity.Len():]
+
 	return
 }
 
 // SetSensitivity sets scan sensitivity
 func (c *Client) SetSensitivity(o SensiOption, v bool) (err error) {
 	var s string
+
 	if v {
 		s = o.Enable()
 	} else {
@@ -459,16 +465,48 @@ func (c *Client) SetSensitivity(o SensiOption, v bool) (err error) {
 	}
 
 	_, err = c.basicCmd(Sensitivity, s)
+
 	return
 }
 
-// Exclude excludes path from scans
-func (c *Client) Exclude() (err error) {
+// GetExclude returns excluded path from scans
+func (c *Client) GetExclude() (r string, err error) {
+	var s string
+
+	if s, err = c.basicCmd(Exclude, ""); err != nil {
+		return
+	}
+
+	if s == "" {
+		return
+	}
+
+	if !strings.HasPrefix(s, Exclude.String()) {
+		err = fmt.Errorf("Invalid Server Response: %s", s)
+		return
+	}
+
+	r = s[Exclude.Len():]
+
+	return
+}
+
+// SetExclude returns excluded path from scans
+func (c *Client) SetExclude(p string) (err error) {
+	_, err = c.basicCmd(Exclude, p)
 	return
 }
 
 // CheckURL checks whether a given URL is malicious
 func (c *Client) CheckURL(u string) (r bool, err error) {
+	var s string
+
+	if s, err = c.basicCmd(CheckURL, u); err != nil {
+		return
+	}
+
+	r = strings.HasSuffix(s, "URL blocked")
+
 	return
 }
 
@@ -501,6 +539,7 @@ func (c *Client) dial() (conn net.Conn, err error) {
 
 func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 	var id uint
+
 	if o == "" {
 		id, err = c.tc.Cmd("%s", cmd)
 	} else {
@@ -518,6 +557,13 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 		return
 	}
 
+	if cmd == CheckURL {
+		if r, err = c.tc.ReadLine(); err != nil {
+			return
+		}
+		return
+	}
+
 	// Read Opening response
 	if _, _, err = c.tc.ReadCodeLine(210); err != nil {
 		return
@@ -526,6 +572,13 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 	// Read actual response
 	if r, err = c.tc.ReadLine(); err != nil {
 		return
+	}
+
+	if cmd == Exclude {
+		if r == "200 EXCLUDE OK" {
+			r = ""
+			return
+		}
 	}
 
 	// Read Closing response
