@@ -51,10 +51,10 @@ import "github.com/baruwa-enterprise/avast"
 
 Set `AVAST_ADDRESS` to point to your avast socket
 
-``consule
+```consule
 AVAST_ADDRESS="/var/run/avast/scan.sock"
 make test
-``
+```
 
 ## License
 
