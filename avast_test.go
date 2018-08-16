@@ -176,27 +176,105 @@ func TestBasics(t *testing.T) {
 		if c.address != address {
 			t.Errorf("Got %q want %q", c.address, address)
 		}
+		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1"); e == nil {
+			t.Errorf("An error should be returned")
+		} else {
+			expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
+			if e.Error() != expect {
+				t.Errorf("Got %q want %q", e, expect)
+			}
+		}
+	}
+}
+
+func TestConnTimeOut(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
 		if c.connTimeout != defaultTimeout {
 			t.Errorf("The default conn timeout should be set")
-		}
-		if c.connSleep != defaultSleep {
-			t.Errorf("The default conn sleep should be set")
-		}
-		if c.connRetries != 0 {
-			t.Errorf("The default conn retries should be set")
 		}
 		expected := 2 * time.Second
 		c.SetConnTimeout(expected)
 		if c.connTimeout != expected {
 			t.Errorf("Calling c.SetConnTimeout(%q) failed", expected)
 		}
+	}
+}
+
+func TestConnSleep(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		if c.connSleep != defaultSleep {
+			t.Errorf("The default conn sleep should be set")
+		}
+		expected := 2 * time.Second
+		c.SetConnSleep(expected)
+		if c.connSleep != expected {
+			t.Errorf("Calling c.SetConnSleep(%q) failed", expected)
+		}
+	}
+}
+
+func TestCmdTimeOut(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		expected := 2 * time.Second
 		c.SetCmdTimeout(expected)
 		if c.cmdTimeout != expected {
 			t.Errorf("Calling c.SetCmdTimeout(%q) failed", expected)
 		}
-		c.SetConnSleep(expected)
-		if c.connSleep != expected {
-			t.Errorf("Calling c.SetConnSleep(%q) failed", expected)
+	}
+}
+
+func TestConnRetries(t *testing.T) {
+	address := os.Getenv("AVAST_ADDRESS")
+	if address == "" {
+		address = localSock
+	}
+
+	if _, e := os.Stat(address); !os.IsNotExist(e) {
+		c, e := NewClient(address)
+		if e != nil {
+			t.Errorf("An error should not be returned")
+		}
+		if e == nil {
+			defer c.Close()
+		}
+		if c.connRetries != 0 {
+			t.Errorf("The default conn retries should be set")
 		}
 		c.SetConnRetries(2)
 		if c.connRetries != 2 {
@@ -205,14 +283,6 @@ func TestBasics(t *testing.T) {
 		c.SetConnRetries(-2)
 		if c.connRetries != 0 {
 			t.Errorf("Preventing negative values in c.SetConnRetries(%q) failed", -2)
-		}
-		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1"); e == nil {
-			t.Errorf("An error should be returned")
-		} else {
-			expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
-			if e.Error() != expect {
-				t.Errorf("Got %q want %q", e, expect)
-			}
 		}
 	}
 }
