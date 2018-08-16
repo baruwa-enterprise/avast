@@ -144,6 +144,36 @@ func packgr(c *avast.Client, w *sync.WaitGroup) {
 	pack(c)
 }
 
+func scanv(c *avast.Client) {
+	s, e := c.Scan("/var/spool/testfiles/eicar.tar.bz2")
+	if e != nil {
+		log.Println("ERROR:", e)
+		return
+	}
+	for _, rt := range s {
+		fmt.Printf("Scan:\t\t%s\naname\t\t=>\t%s\nstatus\t\t=>\t%s\nsignature\t\t=>\t%s\ninfected\t\t=>\t%t\n",
+			rt.Filename, rt.ArchiveItem, rt.Status, rt.Signature, rt.Infected)
+		// fmt.Println("RAW=>", rt.Raw)
+	}
+}
+
+func scan(c *avast.Client, w *sync.WaitGroup) {
+	defer func() {
+		w.Done()
+	}()
+
+	s, e := c.Scan("/var/spool/testfiles")
+	if e != nil {
+		log.Println("ERROR:", e)
+		return
+	}
+	for _, rt := range s {
+		fmt.Printf("Scan:\t\t%s\naname\t\t=>\t%s\nstatus\t\t=>\t%s\nsignature\t\t=>\t%s\ninfected\t\t=>\t%t\n",
+			rt.Filename, rt.ArchiveItem, rt.Status, rt.Signature, rt.Infected)
+		// fmt.Println("RAW=>", rt.Raw)
+	}
+}
+
 func main() {
 	// var s string
 	flag.Usage = usage
@@ -162,9 +192,12 @@ func main() {
 	go versiongr(c, &wg)
 	wg.Add(1)
 	go packgr(c, &wg)
+	wg.Add(1)
+	go scan(c, &wg)
 	wg.Wait()
 
 	// Run in main goroutine
+	scanv(c)
 	version(c)
 	pack(c)
 	setPack(c, false)

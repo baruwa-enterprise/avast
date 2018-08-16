@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/textproto"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -136,6 +137,10 @@ const (
 	Suspicious
 	// Pube represents pube
 	Pube
+)
+
+var (
+	responseRe = regexp.MustCompile(`^SCAN (?P<filename>[^\t]+)\t(?:\[(?P<status>[+LE])\])(?P<depth>\d\.\d)(?:\t(?P<signature>.+))?$`)
 )
 
 // SensiOption represents Avast Sensitivity options
@@ -346,6 +351,7 @@ func (c *Client) SetConnSleep(s time.Duration) {
 
 // Scan submits a path for scanning
 func (c *Client) Scan(p string) (r []*Response, err error) {
+	r, err = c.fileCmd(p)
 	return
 }
 
@@ -586,6 +592,72 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 		return
 	}
 
+	return
+}
+
+func (c *Client) fileCmd(p string) (r []*Response, err error) {
+	var id uint
+	var l string
+	var seen bool
+	var gerr error
+
+	if id, err = c.tc.Cmd("%s %s", Scan, p); err != nil {
+		return
+	}
+
+	c.tc.StartResponse(id)
+	defer c.tc.EndResponse(id)
+
+	// Read Opening response
+	if _, _, err = c.tc.ReadCodeLine(210); err != nil {
+		return
+	}
+
+	// Read actual response
+	r = make([]*Response, 1)
+	for {
+		if l, err = c.tc.ReadLine(); err != nil {
+			return
+		}
+		if strings.HasPrefix(l, Scan.String()) {
+			if mb := responseRe.FindStringSubmatch(l); mb == nil {
+				gerr = fmt.Errorf("Invalid Server Response: %s", l)
+				continue
+			} else {
+				rs := Response{}
+				if strings.HasPrefix(mb[3], "0.") {
+					rs.Filename = mb[1]
+				} else {
+					pts := strings.SplitN(mb[1], "|", 2)
+					rs.Filename = pts[0]
+					rs.ArchiveItem = pts[1]
+				}
+				rs.Status = mb[2]
+				rs.Infected = mb[2] == "L"
+				if rs.Infected {
+					rs.Signature = strings.TrimPrefix(mb[4], "0 ")
+				} else {
+					rs.Signature = mb[4]
+				}
+				rs.Raw = l
+
+				if !seen {
+					r[0] = &rs
+					seen = true
+				} else {
+					r = append(r, &rs)
+				}
+			}
+		} else if l == "200 SCAN OK" {
+			break
+		} else {
+			gerr = fmt.Errorf("Invalid Server Response: %s", l)
+		}
+	}
+
+	if err == nil && gerr != nil {
+		err = gerr
+	}
 	return
 }
 
