@@ -492,7 +492,7 @@ func (c *Client) GetExclude() (r string, err error) {
 		return
 	}
 
-	r = s[Exclude.Len():]
+	r = s[Exclude.Len()+1:]
 
 	return
 }
