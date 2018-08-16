@@ -82,6 +82,15 @@ func getSensi(c *avast.Client) {
 	fmt.Println("SENSI=>", f)
 }
 
+func getExclude(c *avast.Client) {
+	f, e := c.GetExclude()
+	if e != nil {
+		log.Println("ERROR:", e)
+		return
+	}
+	fmt.Println("EXCLUDE=>", f)
+}
+
 func setPack(c *avast.Client, v bool) {
 	e := c.SetPack(avast.Mime, v)
 	if e != nil {
@@ -103,6 +112,27 @@ func setSensi(c *avast.Client, v bool) {
 	if e != nil {
 		log.Println("SET SENSI ERROR:", e)
 		return
+	}
+}
+
+func setExclude(c *avast.Client) {
+	e := c.SetExclude("/root")
+	if e != nil {
+		log.Println("SET EXCLUDE ERROR:", e)
+		return
+	}
+}
+
+func checkURL(c *avast.Client, u string) {
+	b, e := c.CheckURL(u)
+	if e != nil {
+		log.Println("CheckURL ERROR:", e)
+		return
+	}
+	if b {
+		fmt.Println("CheckURL", u, "is blocked")
+	} else {
+		fmt.Println("CheckURL", u, "is not blocked")
 	}
 }
 
@@ -151,5 +181,10 @@ func main() {
 	getSensi(c)
 	setSensi(c, true)
 	getSensi(c)
+	getExclude(c)
+	setExclude(c)
+	getExclude(c)
+	checkURL(c, "http://www.google.com")
+	checkURL(c, "http://www.avast.com/eng/test-url-blocker.html")
 	fmt.Println("Done")
 }
