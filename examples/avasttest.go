@@ -180,7 +180,7 @@ func main() {
 	flag.ErrHelp = errors.New("")
 	flag.CommandLine.SortFlags = false
 	flag.Parse()
-	c, e := avast.NewClient(address)
+	c, e := avast.NewClient(address, avast.DefaultTimeout, 30*time.Second)
 	if e != nil {
 		log.Println(e)
 		return

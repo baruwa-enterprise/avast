@@ -22,9 +22,14 @@ import (
 )
 
 const (
-	defaultTimeout = 15 * time.Second
-	defaultSleep   = 1 * time.Second
-	avastSock      = "/var/run/avast/scan.sock"
+	// DefaultTimeout is the default connection timeout
+	DefaultTimeout = 15 * time.Second
+	// DefaultCmdTimeout is the default IO timeout
+	DefaultCmdTimeout = 1 * time.Minute
+	// DefaultSleep is the default sleep period
+	DefaultSleep = 1 * time.Second
+	// AvastSock is the default socket location
+	AvastSock = "/var/run/avast/scan.sock"
 )
 
 const (
@@ -140,6 +145,8 @@ const (
 )
 
 var (
+	// ZeroTime holds the zero value of time
+	ZeroTime   time.Time
 	responseRe = regexp.MustCompile(`^SCAN (?P<filename>[^\t]+)\t(?:\[(?P<status>[+LE])\])(?P<depth>\d\.\d)(?:\t(?P<signature>.+))?$`)
 )
 
@@ -322,6 +329,7 @@ type Client struct {
 	cmdTimeout  time.Duration
 	tc          *textproto.Conn
 	m           sync.Mutex
+	conn        net.Conn
 }
 
 // SetConnTimeout sets the connection timeout
@@ -526,10 +534,8 @@ func (c *Client) Close() (err error) {
 }
 
 func (c *Client) dial() (conn net.Conn, err error) {
-	d := &net.Dialer{}
-
-	if c.connTimeout > 0 {
-		d.Timeout = c.connTimeout
+	d := &net.Dialer{
+		Timeout: c.connTimeout,
 	}
 
 	for i := 0; i <= c.connRetries; i++ {
@@ -558,12 +564,14 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 
 	c.tc.StartResponse(id)
 	defer c.tc.EndResponse(id)
+	defer c.conn.SetDeadline(ZeroTime)
 
 	if cmd == Quit {
 		return
 	}
 
 	if cmd == CheckURL {
+		c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 		if r, err = c.tc.ReadLine(); err != nil {
 			return
 		}
@@ -571,11 +579,13 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 	}
 
 	// Read Opening response
+	c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 	if _, _, err = c.tc.ReadCodeLine(210); err != nil {
 		return
 	}
 
 	// Read actual response
+	c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 	if r, err = c.tc.ReadLine(); err != nil {
 		return
 	}
@@ -588,6 +598,7 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 	}
 
 	// Read Closing response
+	c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 	if _, _, err = c.tc.ReadCodeLine(200); err != nil {
 		return
 	}
@@ -607,8 +618,10 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 
 	c.tc.StartResponse(id)
 	defer c.tc.EndResponse(id)
+	defer c.conn.SetDeadline(ZeroTime)
 
 	// Read Opening response
+	c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 	if _, _, err = c.tc.ReadCodeLine(210); err != nil {
 		return
 	}
@@ -616,6 +629,7 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 	// Read actual response
 	r = make([]*Response, 1)
 	for {
+		c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 		if l, err = c.tc.ReadLine(); err != nil {
 			return
 		}
@@ -662,10 +676,9 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 }
 
 // NewClient creates and returns a new instance of Client
-func NewClient(address string) (c *Client, err error) {
-	var conn net.Conn
+func NewClient(address string, connTimeOut, ioTimeOut time.Duration) (c *Client, err error) {
 	if address == "" {
-		address = avastSock
+		address = AvastSock
 	}
 
 	if _, err = os.Stat(address); os.IsNotExist(err) {
@@ -675,20 +688,22 @@ func NewClient(address string) (c *Client, err error) {
 
 	c = &Client{
 		address:     address,
-		connTimeout: defaultTimeout,
-		connSleep:   defaultSleep,
+		connTimeout: connTimeOut,
+		connSleep:   DefaultSleep,
+		cmdTimeout:  ioTimeOut,
 	}
 
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	if c.tc == nil {
-		if conn, err = c.dial(); err != nil {
-			return
-		}
-
-		c.tc = textproto.NewConn(conn)
+	if c.conn, err = c.dial(); err != nil {
+		return
 	}
+
+	c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
+	defer c.conn.SetDeadline(ZeroTime)
+
+	c.tc = textproto.NewConn(c.conn)
 
 	if _, _, err = c.tc.ReadCodeLine(220); err != nil {
 		return

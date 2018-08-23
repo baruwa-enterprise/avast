@@ -166,23 +166,20 @@ func TestBasics(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		if c.address != address {
 			t.Errorf("Got %q want %q", c.address, address)
 		}
-		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1"); e == nil {
-			t.Errorf("An error should be returned")
-		} else {
-			expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
-			if e.Error() != expect {
-				t.Errorf("Got %q want %q", e, expect)
-			}
+		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1", 5*time.Second, 10*time.Second); e == nil {
+			t.Fatalf("An error should be returned")
+		}
+		expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
+		if e.Error() != expect {
+			t.Errorf("Got %q want %q", e, expect)
 		}
 	}
 }
@@ -194,14 +191,12 @@ func TestConnTimeOut(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
-		if c.connTimeout != defaultTimeout {
+		defer c.Close()
+		if c.connTimeout != 5*time.Second {
 			t.Errorf("The default conn timeout should be set")
 		}
 		expected := 2 * time.Second
@@ -219,14 +214,12 @@ func TestConnSleep(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
-		if c.connSleep != defaultSleep {
+		defer c.Close()
+		if c.connSleep != DefaultSleep {
 			t.Errorf("The default conn sleep should be set")
 		}
 		expected := 2 * time.Second
@@ -244,13 +237,11 @@ func TestCmdTimeOut(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		expected := 2 * time.Second
 		c.SetCmdTimeout(expected)
 		if c.cmdTimeout != expected {
@@ -266,13 +257,11 @@ func TestConnRetries(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		if c.connRetries != 0 {
 			t.Errorf("The default conn retries should be set")
 		}
@@ -288,9 +277,9 @@ func TestConnRetries(t *testing.T) {
 }
 
 func TestBasicError(t *testing.T) {
-	_, e := NewClient("")
+	_, e := NewClient("", 5*time.Second, 10*time.Second)
 	if e == nil {
-		t.Errorf("An error should not be returned")
+		t.Fatalf("An error should not be returned")
 	}
 	expected := "The unix socket: /var/run/avast/scan.sock does not exist"
 	if e.Error() != expected {
@@ -305,17 +294,15 @@ func TestScan(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		fn := "/var/spool/testfiles/eicar.tar.bz2"
 		s, e := c.Scan(fn)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		for _, rt := range s {
 			if rt.Filename != fn {
@@ -332,16 +319,14 @@ func TestVps(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.Vps()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if i == 0 {
 			t.Errorf("Vps() should not return 0")
@@ -356,38 +341,36 @@ func TestPack(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.GetPack()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Mime.Enable()) {
 			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Enable())
 		}
 		e = c.SetPack(Mime, false)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetPack()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Mime.Disable()) {
 			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Disable())
 		}
 		e = c.SetPack(Mime, true)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetPack()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Mime.Enable()) {
 			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Enable())
@@ -402,38 +385,36 @@ func TestFlagsOp(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.GetFlags()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, FullFiles.Disable()) {
 			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Disable())
 		}
 		e = c.SetFlags(FullFiles, true)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetFlags()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, FullFiles.Enable()) {
 			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Enable())
 		}
 		e = c.SetFlags(FullFiles, false)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetFlags()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, FullFiles.Disable()) {
 			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Disable())
@@ -448,38 +429,36 @@ func TestSensitivityOp(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.GetSensitivity()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Worm.Enable()) {
 			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Enable())
 		}
 		e = c.SetSensitivity(Worm, false)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetSensitivity()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Worm.Disable()) {
 			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Disable())
 		}
 		e = c.SetSensitivity(Worm, true)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetSensitivity()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if strings.HasPrefix(i, Worm.Enable()) {
 			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Enable())
@@ -494,16 +473,14 @@ func TestExclude(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.GetExclude()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if i != "" {
 			t.Errorf("c.GetExclude() = %q, want %q", i, "")
@@ -511,11 +488,11 @@ func TestExclude(t *testing.T) {
 		fp := "/root"
 		e = c.SetExclude(fp)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		i, e = c.GetExclude()
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if i != fp {
 			t.Errorf("c.GetExclude() = %q, want %q", i, fp)
@@ -530,23 +507,21 @@ func TestCheckURL(t *testing.T) {
 	}
 
 	if _, e := os.Stat(address); !os.IsNotExist(e) {
-		c, e := NewClient(address)
+		c, e := NewClient(address, 5*time.Second, 10*time.Second)
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
-		if e == nil {
-			defer c.Close()
-		}
+		defer c.Close()
 		i, e := c.CheckURL("http://www.google.com")
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if i {
 			t.Errorf(`CheckURL("http://www.google.com") should not return false`)
 		}
 		i, e = c.CheckURL("http://www.avast.com/eng/test-url-blocker.html")
 		if e != nil {
-			t.Errorf("An error should not be returned")
+			t.Fatalf("An error should not be returned")
 		}
 		if !i {
 			t.Errorf(`CheckURL("http://www.avast.com/eng/test-url-blocker.html") should not return true`)
