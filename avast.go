@@ -706,6 +706,7 @@ func NewClient(address string, connTimeOut, ioTimeOut time.Duration) (c *Client,
 	c.tc = textproto.NewConn(c.conn)
 
 	if _, _, err = c.tc.ReadCodeLine(220); err != nil {
+		c.tc.Close()
 		return
 	}
 
