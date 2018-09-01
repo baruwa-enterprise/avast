@@ -22,6 +22,11 @@ import (
 )
 
 const (
+	unixSockErr    = "The unix socket: %s does not exist"
+	invalidRespErr = "Invalid server response: %s"
+	excludeOKResp  = "200 EXCLUDE OK"
+	scanOkResp     = "200 SCAN OK"
+	urlBlockedResp = "URL blocked"
 	// DefaultTimeout is the default connection timeout
 	DefaultTimeout = 15 * time.Second
 	// DefaultCmdTimeout is the default IO timeout
@@ -372,12 +377,12 @@ func (c *Client) Vps() (v int, err error) {
 	}
 
 	if !strings.HasPrefix(s, Vps.String()) {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
 	if v, err = strconv.Atoi(s[4:]); err != nil {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
@@ -393,7 +398,7 @@ func (c *Client) GetPack() (p string, err error) {
 	}
 
 	if !strings.HasPrefix(s, Pack.String()) {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
@@ -426,7 +431,7 @@ func (c *Client) GetFlags() (f string, err error) {
 	}
 
 	if !strings.HasPrefix(s, Flags.String()) {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
@@ -459,7 +464,7 @@ func (c *Client) GetSensitivity() (f string, err error) {
 	}
 
 	if !strings.HasPrefix(s, Sensitivity.String()) {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
@@ -496,7 +501,7 @@ func (c *Client) GetExclude() (r string, err error) {
 	}
 
 	if !strings.HasPrefix(s, Exclude.String()) {
-		err = fmt.Errorf("Invalid Server Response: %s", s)
+		err = fmt.Errorf(invalidRespErr, s)
 		return
 	}
 
@@ -519,7 +524,7 @@ func (c *Client) CheckURL(u string) (r bool, err error) {
 		return
 	}
 
-	r = strings.HasSuffix(s, "URL blocked")
+	r = strings.HasSuffix(s, urlBlockedResp)
 
 	return
 }
@@ -591,7 +596,7 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 	}
 
 	if cmd == Exclude {
-		if r == "200 EXCLUDE OK" {
+		if r == excludeOKResp {
 			r = ""
 			return
 		}
@@ -609,7 +614,6 @@ func (c *Client) basicCmd(cmd Command, o string) (r string, err error) {
 func (c *Client) fileCmd(p string) (r []*Response, err error) {
 	var id uint
 	var l string
-	var seen bool
 	var gerr error
 
 	if id, err = c.tc.Cmd("%s %s", Scan, p); err != nil {
@@ -627,7 +631,6 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 	}
 
 	// Read actual response
-	r = make([]*Response, 1)
 	for {
 		c.conn.SetDeadline(time.Now().Add(c.cmdTimeout))
 		if l, err = c.tc.ReadLine(); err != nil {
@@ -635,7 +638,7 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 		}
 		if strings.HasPrefix(l, Scan.String()) {
 			if mb := responseRe.FindStringSubmatch(l); mb == nil {
-				gerr = fmt.Errorf("Invalid Server Response: %s", l)
+				gerr = fmt.Errorf(invalidRespErr, l)
 				continue
 			} else {
 				rs := Response{}
@@ -655,17 +658,12 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 				}
 				rs.Raw = l
 
-				if !seen {
-					r[0] = &rs
-					seen = true
-				} else {
-					r = append(r, &rs)
-				}
+				r = append(r, &rs)
 			}
-		} else if l == "200 SCAN OK" {
+		} else if l == scanOkResp {
 			break
 		} else {
-			gerr = fmt.Errorf("Invalid Server Response: %s", l)
+			gerr = fmt.Errorf(invalidRespErr, l)
 		}
 	}
 
@@ -682,7 +680,7 @@ func NewClient(address string, connTimeOut, ioTimeOut time.Duration) (c *Client,
 	}
 
 	if _, err = os.Stat(address); os.IsNotExist(err) {
-		err = fmt.Errorf("The unix socket: %s does not exist", address)
+		err = fmt.Errorf(unixSockErr, address)
 		return
 	}
 
