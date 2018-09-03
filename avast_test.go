@@ -10,6 +10,7 @@ Avast - Golang Avast client
 package avast
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -177,10 +178,12 @@ func TestBasics(t *testing.T) {
 		if _, e = NewClient("fe80::879:d85f:f836:1b56%en1", 5*time.Second, 10*time.Second); e == nil {
 			t.Fatalf("An error should be returned")
 		}
-		expect := "The unix socket: fe80::879:d85f:f836:1b56%en1 does not exist"
+		expect := fmt.Sprintf(unixSockErr, "fe80::879:d85f:f836:1b56%en1")
 		if e.Error() != expect {
 			t.Errorf("Got %q want %q", e, expect)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -204,6 +207,8 @@ func TestConnTimeOut(t *testing.T) {
 		if c.connTimeout != expected {
 			t.Errorf("Calling c.SetConnTimeout(%q) failed", expected)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -227,6 +232,8 @@ func TestConnSleep(t *testing.T) {
 		if c.connSleep != expected {
 			t.Errorf("Calling c.SetConnSleep(%q) failed", expected)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -247,6 +254,8 @@ func TestCmdTimeOut(t *testing.T) {
 		if c.cmdTimeout != expected {
 			t.Errorf("Calling c.SetCmdTimeout(%q) failed", expected)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -273,6 +282,8 @@ func TestConnRetries(t *testing.T) {
 		if c.connRetries != 0 {
 			t.Errorf("Preventing negative values in c.SetConnRetries(%q) failed", -2)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -281,7 +292,7 @@ func TestBasicError(t *testing.T) {
 	if e == nil {
 		t.Fatalf("An error should not be returned")
 	}
-	expected := "The unix socket: /var/run/avast/scan.sock does not exist"
+	expected := fmt.Sprintf(unixSockErr, AvastSock)
 	if e.Error() != expected {
 		t.Errorf("Got %q want %q", e, expected)
 	}
@@ -309,6 +320,8 @@ func TestScan(t *testing.T) {
 				t.Errorf("c.Scan(%q) = %q, want %q", fn, rt.Filename, fn)
 			}
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -331,6 +344,8 @@ func TestVps(t *testing.T) {
 		if i == 0 {
 			t.Errorf("Vps() should not return 0")
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -375,6 +390,8 @@ func TestPack(t *testing.T) {
 		if strings.HasPrefix(i, Mime.Enable()) {
 			t.Errorf("c.GetPack() = %q, should start with %q", i, Mime.Enable())
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -419,6 +436,8 @@ func TestFlagsOp(t *testing.T) {
 		if strings.HasPrefix(i, FullFiles.Disable()) {
 			t.Errorf("c.GetFlags() = %q, should start with %q", i, FullFiles.Disable())
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -463,6 +482,8 @@ func TestSensitivityOp(t *testing.T) {
 		if strings.HasPrefix(i, Worm.Enable()) {
 			t.Errorf("c.GetSensitivity() = %q, want %q", i, Worm.Enable())
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -497,6 +518,8 @@ func TestExclude(t *testing.T) {
 		if i != fp {
 			t.Errorf("c.GetExclude() = %q, want %q", i, fp)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
 
@@ -526,5 +549,7 @@ func TestCheckURL(t *testing.T) {
 		if !i {
 			t.Errorf(`CheckURL("http://www.avast.com/eng/test-url-blocker.html") should not return true`)
 		}
+	} else {
+		t.Skip("skipping test; $AVAST_ADDRESS not set")
 	}
 }
