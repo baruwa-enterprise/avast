@@ -3,6 +3,7 @@
 Golang Avast Client
 
 [![Build Status](https://travis-ci.org/baruwa-enterprise/avast.svg?branch=master)](https://travis-ci.org/baruwa-enterprise/avast)
+[![Ci](https://github.com/baruwa-enterprise/avast/workflows/Ci/badge.svg)](https://github.com/baruwa-enterprise/avast/actions?query=workflow%3ACi)
 [![codecov](https://codecov.io/gh/baruwa-enterprise/avast/branch/master/graph/badge.svg)](https://codecov.io/gh/baruwa-enterprise/avast)
 [![Go Report Card](https://goreportcard.com/badge/github.com/baruwa-enterprise/avast)](https://goreportcard.com/report/github.com/baruwa-enterprise/avast)
 [![GoDoc](https://godoc.org/github.com/baruwa-enterprise/avast?status.svg)](https://godoc.org/github.com/baruwa-enterprise/avast)
