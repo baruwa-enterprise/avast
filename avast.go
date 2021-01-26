@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Andrew Colin Kissa <andrew@datopdog.io>
+// Copyright (C) 2018-2021 Andrew Colin Kissa <andrew@datopdog.io>
 // This Source Code Form is subject to the terms of the Mozilla Public
 // License, v. 2.0. If a copy of the MPL was not distributed with this file,
 // You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,7 @@ Avast - Golang Avast client
 package avast
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/textproto"
@@ -538,13 +539,13 @@ func (c *Client) Close() (err error) {
 	return
 }
 
-func (c *Client) dial() (conn net.Conn, err error) {
+func (c *Client) dial(ctx context.Context) (conn net.Conn, err error) {
 	d := &net.Dialer{
 		Timeout: c.connTimeout,
 	}
 
 	for i := 0; i <= c.connRetries; i++ {
-		conn, err = d.Dial("unix", c.address)
+		conn, err = d.DialContext(ctx, "unix", c.address)
 		if e, ok := err.(net.Error); ok && e.Timeout() {
 			time.Sleep(c.connSleep)
 			continue
@@ -674,7 +675,7 @@ func (c *Client) fileCmd(p string) (r []*Response, err error) {
 }
 
 // NewClient creates and returns a new instance of Client
-func NewClient(address string, connTimeOut, ioTimeOut time.Duration) (c *Client, err error) {
+func NewClient(ctx context.Context, address string, connTimeOut, ioTimeOut time.Duration) (c *Client, err error) {
 	if address == "" {
 		address = AvastSock
 	}
@@ -694,7 +695,7 @@ func NewClient(address string, connTimeOut, ioTimeOut time.Duration) (c *Client,
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	if c.conn, err = c.dial(); err != nil {
+	if c.conn, err = c.dial(ctx); err != nil {
 		return
 	}
 
