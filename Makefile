@@ -1,6 +1,8 @@
 .PHONY: build clean test help default
 
 BIN_NAME=avastscan
+USER=baruwa-enterprise
+PACKAGE=avast
 
 VERSION := $(shell grep "const Version " cmd/avastscan/version.go | sed -E 's/.*"(.+)"$$/\1/')
 GIT_COMMIT=$(shell git rev-parse HEAD)
@@ -32,3 +34,6 @@ test:
 test-coverage:
 	go tool cover -html=cp.out
 
+update-pkg-cache:
+	GOPROXY=https://proxy.golang.org GO111MODULE=on \
+	go get github.com/$(USER)/$(PACKAGE)@v$(VERSION)
