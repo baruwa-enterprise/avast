@@ -25,7 +25,6 @@ jobs:
 
       - name: Get dependencies
         run: |
-          make update-pkg-cache
           go get -v -t -d ./...
       - name: Build
         run: go build -v ./...

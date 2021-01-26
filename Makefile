@@ -33,7 +33,3 @@ test:
 
 test-coverage:
 	go tool cover -html=cp.out
-
-update-pkg-cache:
-	GOPROXY=https://proxy.golang.org GO111MODULE=on \
-	go get github.com/$(USER)/$(PACKAGE)@v$(VERSION)
